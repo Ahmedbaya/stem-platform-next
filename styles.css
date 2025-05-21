@@ -1,0 +1,118 @@
+/* Base styles */
+:root {
+  --primary-color: #3b82f6;
+  --danger-color: #ef4444;
+  --background-light: #f73636;
+  --text-light: #1f2937;
+  --background-dark: #1f2937;
+  --text-dark: #ffffff;
+}
+
+.app {
+  min-height: 100vh;
+  padding: 2rem;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.app.light {
+  background-color: var(--background-light);
+  color: var(--text-light);
+}
+
+.app.dark {
+  background-color: var(--background-dark);
+  color: var(--text-dark);
+}
+
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+/* Components */
+.button {
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.button.default {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.button.danger {
+  background-color: var(--danger-color);
+  color: white;
+}
+
+.card {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.card-title {
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.input {
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+  border: 1px solid #e5e7eb;
+  margin-bottom: 1rem;
+}
+
+/* Counter */
+.counter {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  justify-content: center;
+}
+
+/* Task List */
+.task-list {
+  list-style: none;
+  padding: 0;
+}
+
+.task-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  border-bottom: 1px solid rgba(229, 231, 235, 0.2);
+}
+
+.task-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.completed {
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+form {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
