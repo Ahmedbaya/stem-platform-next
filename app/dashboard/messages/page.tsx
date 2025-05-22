@@ -234,6 +234,7 @@ export default function MessagesPage() {
     (user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     user.email.toLowerCase().includes(searchQuery.toLowerCase()))
   )
+  
 
   return (
     <div className="container mx-auto p-4 h-[calc(100vh-4rem)]">
