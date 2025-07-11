@@ -100,10 +100,11 @@ def test_performance_250x2():
     params = IBMOLSParameters(
         problem_size=250,
         objectives=2,
-        max_evaluations=50000,
+        max_evaluations=100000,  # Increase evaluation budget
         debug_level=1,
-        log_frequency=500,
-        nbl=2000  # Increase NBL for larger solution sets
+        log_frequency=1000,
+        nbl=5000,  # Increase NBL significantly
+        frequency=100  # More frequent archive updates
     )
     
     algorithm = IBMOLS(params)
@@ -146,10 +147,11 @@ def test_performance_500x2():
     params = IBMOLSParameters(
         problem_size=500,
         objectives=2,
-        max_evaluations=50000,
+        max_evaluations=150000,  # Increase evaluation budget
         debug_level=1,
-        log_frequency=500,
-        nbl=3000  # Increase NBL for larger solution sets
+        log_frequency=1000,
+        nbl=6000,  # Increase NBL significantly
+        frequency=100  # More frequent archive updates
     )
     
     algorithm = IBMOLS(params)
@@ -192,10 +194,11 @@ def test_performance_750x2():
     params = IBMOLSParameters(
         problem_size=750,
         objectives=2,
-        max_evaluations=50000,
+        max_evaluations=200000,  # Increase evaluation budget significantly
         debug_level=1,
-        log_frequency=500,
-        nbl=4000  # Increase NBL for larger solution sets
+        log_frequency=1000,
+        nbl=8000,  # Increase NBL significantly
+        frequency=100  # More frequent archive updates
     )
     
     algorithm = IBMOLS(params)

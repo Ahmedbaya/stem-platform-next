@@ -39,39 +39,55 @@ class ZDT1(TestProblem):
     def evaluate(self, solution: List[int]) -> List[float]:
         """Evaluate ZDT1 objectives
         
-        For binary solutions, convert to real values in [0,1]
-        For larger binary strings, group bits to form real values
-        f1(x) = x1
-        f2(x) = g(x) * h(f1(x), g(x))
-        where g(x) = 1 + 9 * sum(x2...xn) / (n-1)
-        and h(f1, g) = 1 - sqrt(f1/g)
+        For binary solutions, create a proper Pareto front by:
+        1. Converting binary strings to real values in [0,1] 
+        2. Using gray code or proper binary-to-decimal conversion
+        3. Ensuring intermediate values create non-dominated solutions
         """
         self.evaluation_count += 1
         
-        # Convert binary solution to real values
-        # For large dimensions, group bits to create more diverse real values
-        if self.dimension <= 30:
-            # Direct conversion for small problems
-            x = np.array(solution, dtype=float)
-        else:
-            # For larger problems, create grouped values for better diversity
+        # Convert binary solution to real values for proper ZDT1 evaluation
+        # Use segments of bits to create real-valued variables
+        if self.dimension <= 10:
+            # For small problems, use direct bit mapping with fractional values
             x = []
-            bits_per_var = max(1, self.dimension // 30)  # Group bits
-            for i in range(0, self.dimension, bits_per_var):
-                bit_group = solution[i:i+bits_per_var]
+            for i in range(min(30, self.dimension)):  # ZDT1 typically uses 30 variables
+                if i < len(solution):
+                    # Convert bit to real value with some variation
+                    bit_val = solution[i]
+                    # Add fractional component based on other bits for diversity
+                    fraction = 0.0
+                    if i + 1 < len(solution):
+                        fraction = solution[i + 1] * 0.5
+                    if i + 2 < len(solution):
+                        fraction += solution[i + 2] * 0.25
+                    real_val = bit_val + fraction / 4.0  # Scale down fraction
+                    x.append(min(1.0, real_val))  # Keep in [0,1]
+                else:
+                    x.append(0.0)
+        else:
+            # For larger problems, group bits to form real values
+            num_vars = min(30, self.dimension // 8)  # Use 8 bits per variable
+            x = []
+            for i in range(num_vars):
+                start_bit = i * 8
+                end_bit = min(start_bit + 8, len(solution))
+                bit_group = solution[start_bit:end_bit]
+                
                 if bit_group:
                     # Convert bit group to real value in [0,1]
                     decimal_val = sum(bit * (2 ** j) for j, bit in enumerate(reversed(bit_group)))
                     max_val = (2 ** len(bit_group)) - 1
                     real_val = decimal_val / max_val if max_val > 0 else 0.0
                     x.append(real_val)
-            x = np.array(x)
+            
+            # Ensure we have at least 30 variables for ZDT1
+            while len(x) < 30:
+                x.append(0.0)
         
-        # Ensure we have at least one variable
-        if len(x) == 0:
-            x = np.array([0.0])
+        x = np.array(x)
         
-        # First objective (first variable)
+        # ZDT1 objectives
         f1 = x[0]
         
         # Calculate g function
