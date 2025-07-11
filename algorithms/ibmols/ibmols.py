@@ -21,9 +21,9 @@ class IBMOLS:
         self.instance = instance
         self.archive = Archive()
         self.population = None
-        self.max_iterations = 50000  # Increased iterations
-        self.population_size = 200   # Increased population size
-        self.local_search_depth = 500  # Increased local search depth
+        self.max_iterations = 30000   # Reasonable iterations
+        self.population_size = 100    # Manageable population size
+        self.local_search_depth = 50  # Faster local search
         
     def initialize_population(self) -> Population:
         """Initialize population with diverse random feasible solutions"""
@@ -98,48 +98,63 @@ class IBMOLS:
     
     def local_search(self, individual: Individual) -> Individual:
         """
-        Perform local search exactly matching C implementation logic.
-        This is the critical method that must match C behavior precisely.
+        Perform local search with both 1-exchange and 2-exchange moves.
         """
-        best_neighbor = Individual(self.instance.n_items)
-        copy_individual(individual, best_neighbor)
+        current = Individual(self.instance.n_items)
+        copy_individual(individual, current)
         
         improved = True
-        iterations = 0
         
-        while improved and iterations < self.local_search_depth:
+        while improved:
             improved = False
-            iterations += 1
+            best_neighbor = Individual(self.instance.n_items)
+            copy_individual(current, best_neighbor)
+            best_found = False
             
-            # Create indices array for shuffling (C-style)
-            indices = list(range(self.instance.n_items))
-            shuffle_array(indices)
-            
-            # Try flipping each bit (C-style loop)
-            for idx in range(self.instance.n_items):
-                j = indices[idx]
-                
-                # Create neighbor by flipping bit j
+            # 1-exchange: Try flipping each bit
+            for j in range(self.instance.n_items):
                 neighbor = Individual(self.instance.n_items)
-                copy_individual(best_neighbor, neighbor)
-                
-                # Flip the bit
+                copy_individual(current, neighbor)
                 neighbor.chromosome[j] = 1 - neighbor.chromosome[j]
                 
-                # Evaluate neighbor
                 evaluate_individual(neighbor, self.instance)
                 
-                # Check if feasible
                 if is_feasible(neighbor, self.instance):
-                    # More aggressive improvement criteria
-                    if (neighbor.profit1 > best_neighbor.profit1 and neighbor.profit2 >= best_neighbor.profit2) or \
-                       (neighbor.profit2 > best_neighbor.profit2 and neighbor.profit1 >= best_neighbor.profit1) or \
-                       (neighbor.profit1 + neighbor.profit2 > best_neighbor.profit1 + best_neighbor.profit2):
+                    neighbor_score = neighbor.profit1 + neighbor.profit2
+                    best_score = best_neighbor.profit1 + best_neighbor.profit2
+                    
+                    if neighbor_score > best_score:
                         copy_individual(neighbor, best_neighbor)
-                        improved = True
-                        # Don't break - continue to find best in this iteration
+                        best_found = True
+            
+            # 2-exchange: Try swapping pairs of bits (limited for efficiency)
+            if not best_found:
+                for _ in range(min(50, self.instance.n_items)):  # Limit iterations
+                    i = randint(self.instance.n_items)
+                    j = randint(self.instance.n_items)
+                    if i != j:
+                        neighbor = Individual(self.instance.n_items)
+                        copy_individual(current, neighbor)
+                        neighbor.chromosome[i] = 1 - neighbor.chromosome[i]
+                        neighbor.chromosome[j] = 1 - neighbor.chromosome[j]
+                        
+                        evaluate_individual(neighbor, self.instance)
+                        
+                        if is_feasible(neighbor, self.instance):
+                            neighbor_score = neighbor.profit1 + neighbor.profit2
+                            best_score = best_neighbor.profit1 + best_neighbor.profit2
+                            
+                            if neighbor_score > best_score:
+                                copy_individual(neighbor, best_neighbor)
+                                best_found = True
+            
+            # Accept best improvement found
+            if best_found and (best_neighbor.profit1 + best_neighbor.profit2 > 
+                             current.profit1 + current.profit2):
+                copy_individual(best_neighbor, current)
+                improved = True
         
-        return best_neighbor
+        return current
     
     def _perturb_individual(self, individual: Individual) -> None:
         """Add small random perturbation to individual"""
@@ -152,6 +167,12 @@ class IBMOLS:
         """Update archive with new solution, removing dominated ones"""
         if not is_feasible(individual, self.instance):
             return
+            
+        # Check if individual is already in archive (avoid duplicates)
+        for archived in self.archive.solutions:
+            if (abs(archived.profit1 - individual.profit1) < 0.001 and
+                abs(archived.profit2 - individual.profit2) < 0.001):
+                return  # Already exists
             
         # Check if individual is dominated by any archive member
         is_dominated = False
@@ -200,6 +221,9 @@ class IBMOLS:
         for individual in self.population.ind_array:
             self.update_archive(individual)
         
+        # Additional random restart individuals periodically
+        restart_interval = self.population_size * 3
+        
         iteration = 0
         
         print(f"Starting IBMOLS with seed {seed}")
@@ -216,6 +240,26 @@ class IBMOLS:
                 for ind in self.population.ind_array:
                     ind.explored = 0
                 print(f"Reset exploration flags at iteration {iteration}")
+            
+            # Inject new random solutions periodically (restart strategy)
+            if iteration % restart_interval == 0 and iteration > 0:
+                num_restarts = self.population_size // 10  # Replace 10% of population
+                for _ in range(num_restarts):
+                    restart_idx = randint(self.population_size)
+                    restart_individual = self.population.ind_array[restart_idx]
+                    
+                    # Generate new random solution
+                    for j in range(self.instance.n_items):
+                        restart_individual.chromosome[j] = 1 if randfloat() < 0.3 else 0
+                    
+                    evaluate_individual(restart_individual, self.instance)
+                    if not is_feasible(restart_individual, self.instance):
+                        self._repair_individual(restart_individual)
+                    
+                    restart_individual.explored = 0
+                    self.update_archive(restart_individual)
+                
+                print(f"Injected {num_restarts} restart solutions at iteration {iteration}")
                 
             # Select individual for local search (round-robin)
             individual_idx = iteration % self.population_size
@@ -251,7 +295,7 @@ class IBMOLS:
             iteration += 1
             
             # Progress reporting
-            if iteration % 5000 == 0:
+            if iteration % 10000 == 0:
                 print(f"Iteration {iteration}, Archive size: {len(self.archive.solutions)}")
         
         elapsed_time = time.time() - start_time
