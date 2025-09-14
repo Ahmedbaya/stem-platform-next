@@ -4,6 +4,7 @@ export interface Award {
   value: string
 }
 
+
 export interface Competition {
   _id: string
   title: string
